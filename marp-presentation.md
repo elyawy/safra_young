@@ -1,20 +1,16 @@
 ---
-marp: false
+marp: true
 theme: gaia
 paginate: true
 backgroundColor: #FFFFFF
 
-
-<style>
-img[alt~="center"] {
-  display: block;
-  margin: 0 auto;
-}
-</style>
   
 ---
 
 # Simulating Biological Sequence Evolution
+
+### Elya Wygoda
+#### Prof. Tal Pupko's lab
 
 --- 
 
@@ -65,12 +61,12 @@ img[alt~="center"] {
 
 ## Advantages for indel simulation
 
-- **Efficiency**: Only simulates actual events, not empty time steps
+- Only simulates actual events, not empty time steps
 
 
 ## Problems with this approach
 
-- Each indel events requires copying the previous sequence, and applying the event.
+- Each indel event requires copying the previous sequence, and applying the event.
 
 ---
 
@@ -83,13 +79,18 @@ img[alt~="center"] {
 
 ---
 
-![width:800px](./blocklist_diagram.svg)
+![bg 75%](./blocklist_diagram.png)
+
+---
+
+![bg 90%](./superSequence.png)
+
 
 ---
 
 # Key Takeaways
 
-- You don't even need a start sequence to simulate indels!
+- You don't even need a root sequence to simulate indels!
 - A block based bookkeeping approach makes indel simulation extremely fast.
 
 ---
