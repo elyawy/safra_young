@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <style>
+    .node {
+      fill: #4a86e8;
+    }
+    .leaf-node {
+      fill: #6aa84f;
+    }
+    .branch {
+      stroke: #333;
+      stroke-width: 2;
+      fill: none;
+    }
+    .label {
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+      text-anchor: middle;
+      dominant-baseline: central;
+      fill: white;
+    }
+    
+    /* Animation settings */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .animate {
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    
+    /* Control animation timing */
+    #root, #root-label { animation-delay: 0.5s; }
+    #branch1, #branch2 { animation-delay: 2s; }
+    #internal1, #internal1-label { animation-delay: 3.5s; }
+    #branch3, #branch4 { animation-delay: 5s; }
+    #leaf1, #leaf1-label { animation-delay: 6.5s; }
+    #leaf2, #leaf2-label { animation-delay: 7s; }
+    #leaf3, #leaf3-label { animation-delay: 7.5s; }
+    #leaf4, #leaf4-label { animation-delay: 8s; }
+  </style>
+  
+  <!-- Root node -->
+  <circle id="root" class="node animate" cx="400" cy="80" r="30" />
+  <text class="label animate" id="root-label" x="400" y="80">A</text>
+  
+  <!-- Branches from root to internal node 1 -->
+  <path id="branch1" class="branch animate" d="M385,105 L280,175" />
+  
+  <!-- Branches from root to leaves -->
+  <path id="branch2" class="branch animate" d="M415,105 L520,175" />
+  
+  <!-- Internal node 1 -->
+  <circle id="internal1" class="node animate" cx="280" cy="200" r="30" />
+  <text class="label animate" id="internal1-label" x="280" y="200">B</text>
+  
+  <!-- Branches from internal node 1 to leaves -->
+  <path id="branch3" class="branch animate" d="M265,225 L200,295" />
+  <path id="branch4" class="branch animate" d="M295,225 L360,295" />
+  
+  <!-- Leaf 1 -->
+  <circle id="leaf1" class="leaf-node animate" cx="200" cy="320" r="30" />
+  <text class="label animate" id="leaf1-label" x="200" y="320">C</text>
+  
+  <!-- Leaf 2 -->
+  <circle id="leaf2" class="leaf-node animate" cx="360" cy="320" r="30" />
+  <text class="label animate" id="leaf2-label" x="360" y="320">D</text>
+  
+  <!-- Leaf 3 (directly from root) -->
+  <circle id="leaf3" class="leaf-node animate" cx="520" cy="200" r="30" />
+  <text class="label animate" id="leaf3-label" x="520" y="200">E</text>
+</svg>

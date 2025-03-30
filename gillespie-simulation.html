@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gillespie Algorithm Animation - Nucleotide Sequence with Indels</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sequence-display {
+            font-family: monospace;
+            font-size: 24px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            letter-spacing: 2px;
+            min-height: 40px;
+        }
+        .nucleotide {
+            display: inline-block;
+            width: 30px;
+            text-align: center;
+            padding: 5px 0;
+            margin: 2px;
+            border-radius: 3px;
+        }
+        .nucleotide.A { background-color: #77DD77; }
+        .nucleotide.C { background-color: #84B6F4; }
+        .nucleotide.G { background-color: #FDFD96; }
+        .nucleotide.T { background-color: #FF6961; }
+        .new { animation: highlight 2s; }
+        @keyframes highlight {
+            0% { transform: scale(1.3); box-shadow: 0 0 10px gold; }
+            100% { transform: scale(1); box-shadow: none; }
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+        .parameters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .parameter-group {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        h3 {
+            margin-top: 0;
+        }
+        .slider-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .slider-container label {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .slider-container input[type="range"] {
+            flex: 2;
+        }
+        .slider-container .value {
+            flex: 0 0 40px;
+            text-align: center;
+            background-color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        /* Rate display removed */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gillespie Algorithm: Nucleotide Sequence with Indels</h1>
+        
+        <!-- Rate display removed -->
+        
+        <div class="parameters">
+            <div class="parameter-group">
+                <h3>Sequence Parameters</h3>
+                <div class="slider-container">
+                    <label for="seqLength">Starting Sequence Length:</label>
+                    <input type="range" id="seqLength" min="1" max="20" value="10">
+                    <span id="seqLengthValue" class="value">10</span>
+                </div>
+                <div class="slider-container">
+                    <label for="maxLength">Max Sequence Length:</label>
+                    <input type="range" id="maxLength" min="10" max="50" value="20">
+                    <span id="maxLengthValue" class="value">20</span>
+                </div>
+            </div>
+            
+            <div class="parameter-group">
+                <h3>Indel Parameters</h3>
+                <div class="slider-container">
+                    <label for="insRate">Insertion Rate:</label>
+                    <input type="range" id="insRate" min="0" max="2" step="0.1" value="0.5">
+                    <span id="insRateValue" class="value">0.5</span>
+                </div>
+                <div class="slider-container">
+                    <label for="delRate">Deletion Rate:</label>
+                    <input type="range" id="delRate" min="0" max="2" step="0.1" value="0.5">
+                    <span id="delRateValue" class="value">0.5</span>
+                </div>
+                <div class="slider-container">
+                    <label for="zipfParam">Zipf Parameter:</label>
+                    <input type="range" id="zipfParam" min="1.0" max="3.0" step="0.1" value="1.5">
+                    <span id="zipfParamValue" class="value">1.5</span>
+                </div>
+                <div class="slider-container">
+                    <label for="maxIndel">Max Indel Length:</label>
+                    <input type="range" id="maxIndel" min="1" max="10" value="10">
+                    <span id="maxIndelValue" class="value">10</span>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <h3>Current Sequence:</h3>
+            <div id="sequence" class="sequence-display"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="initialize">Initialize Sequence</button>
+            <button id="step">Step Once</button>
+            <button id="run">Run Simulation</button>
+            <button id="pause" disabled>Pause</button>
+            <div class="slider-container">
+                <label for="speed">Simulation Speed:</label>
+                <input type="range" id="speed" min="100" max="2000" step="100" value="1000">
+            </div>
+        </div>
+        
+        <div>
+            <h3>Simulation Log:</h3>
+            <div id="log" class="log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const sequenceElement = document.getElementById('sequence');
+        const logElement = document.getElementById('log');
+        const initButton = document.getElementById('initialize');
+        const stepButton = document.getElementById('step');
+        const runButton = document.getElementById('run');
+        const pauseButton = document.getElementById('pause');
+        const speedSlider = document.getElementById('speed');
+        // Rate element removed
+        
+        // Slider elements and their display values
+        const sliders = [
+            { id: 'seqLength', valueId: 'seqLengthValue' },
+            { id: 'maxLength', valueId: 'maxLengthValue' },
+            { id: 'insRate', valueId: 'insRateValue' },
+            { id: 'delRate', valueId: 'delRateValue' },
+            { id: 'zipfParam', valueId: 'zipfParamValue' },
+            { id: 'maxIndel', valueId: 'maxIndelValue' }
+        ];
+        
+        // Initialize slider displays
+        sliders.forEach(slider => {
+            const sliderElement = document.getElementById(slider.id);
+            const valueElement = document.getElementById(slider.valueId);
+            
+            // Initialize value display
+            valueElement.textContent = sliderElement.value;
+            
+            // Update value display when slider changes
+            sliderElement.addEventListener('input', () => {
+                valueElement.textContent = sliderElement.value;
+                updateTotalRate();
+            });
+        });
+        
+        // Simulation state
+        let sequence = [];
+        let time = 0;
+        let running = false;
+        let intervalId = null;
+        
+        // Nucleotides
+        const nucleotides = ['A', 'C', 'G', 'T'];
+        
+        // Update the total rate display
+        function updateTotalRate() {
+            const insRate = parseFloat(document.getElementById('insRate').value);
+            const delRate = parseFloat(document.getElementById('delRate').value);
+            
+            let aTot = insRate + delRate;
+            
+            // If sequence is at max length, can't insert anymore
+            const maxLength = parseInt(document.getElementById('maxLength').value);
+            if (sequence.length >= maxLength) {
+                aTot = delRate;
+            }
+            
+            // If sequence is empty, can't delete anymore
+            if (sequence.length === 0) {
+                aTot = insRate;
+            }
+            
+            // Rate display removed
+            return aTot;
+        }
+        
+        // Initialize a random sequence
+        function initializeSequence() {
+            const length = parseInt(document.getElementById('seqLength').value);
+            sequence = [];
+            
+            for (let i = 0; i < length; i++) {
+                const randomNucleotide = nucleotides[Math.floor(Math.random() * nucleotides.length)];
+                sequence.push(randomNucleotide);
+            }
+            
+            updateSequenceDisplay();
+            logEvent(`Initialized new sequence of length ${length}`);
+            time = 0;
+            
+            updateTotalRate();
+            
+            // Enable buttons
+            stepButton.disabled = false;
+            runButton.disabled = false;
+        }
+        
+        // Update the sequence display
+        function updateSequenceDisplay(newIndices = []) {
+            sequenceElement.innerHTML = '';
+            
+            for (let i = 0; i < sequence.length; i++) {
+                const nucleotideElement = document.createElement('span');
+                nucleotideElement.classList.add('nucleotide', sequence[i]);
+                if (newIndices.includes(i)) {
+                    nucleotideElement.classList.add('new');
+                }
+                nucleotideElement.textContent = sequence[i];
+                sequenceElement.appendChild(nucleotideElement);
+            }
+        }
+        
+        // Log an event
+        function logEvent(message) {
+            const entry = document.createElement('div');
+            entry.classList.add('log-entry');
+            entry.textContent = `t=${time.toFixed(2)}: ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // Generate a random number from Zipf distribution
+        function zipfRandom(s) {
+            // Implementation of Zipf distribution for s > 1
+            // Returns values starting from 1
+            let sum = 0;
+            let i = 0;
+            
+            // Approximate the Zipf normalization constant (Riemann zeta function)
+            const zeta = (function() {
+                let sum = 0;
+                for (let i = 1; i <= 1000; i++) {
+                    sum += Math.pow(1.0 / i, s);
+                }
+                return sum;
+            })();
+            
+            const uniform = Math.random();
+            let cumProb = 0;
+            
+            for (i = 1; i <= 100; i++) {
+                cumProb += Math.pow(1.0 / i, s) / zeta;
+                if (uniform < cumProb) {
+                    return i;
+                }
+            }
+            
+            return 1; // Fallback
+        }
+        
+        // Perform one step of the Gillespie algorithm
+        function step() {
+            const maxLength = parseInt(document.getElementById('maxLength').value);
+            const insRate = parseFloat(document.getElementById('insRate').value);
+            const delRate = parseFloat(document.getElementById('delRate').value);
+            const zipfParam = parseFloat(document.getElementById('zipfParam').value);
+            const maxIndel = parseInt(document.getElementById('maxIndel').value);
+            
+            // Total propensity
+            let aTot = updateTotalRate();
+            
+            // Generate time step
+            const dt = -Math.log(Math.random()) / aTot;
+            time += dt;
+            
+            // Determine event type
+            const r = Math.random() * aTot;
+            
+            if (sequence.length >= maxLength || (r < delRate && sequence.length > 0)) {
+                // Deletion event
+                let indelLength = Math.min(
+                    zipfRandom(zipfParam),
+                    maxIndel,
+                    sequence.length
+                );
+                
+                // Random position to start deletion
+                const startPos = Math.floor(Math.random() * (sequence.length - indelLength + 1));
+                
+                // Perform deletion
+                const deletedNucleotides = sequence.slice(startPos, startPos + indelLength).join('');
+                sequence.splice(startPos, indelLength);
+                
+                logEvent(`Deletion of ${indelLength} bases [${deletedNucleotides}] at position ${startPos}`);
+                updateSequenceDisplay();
+            } else {
+                // Insertion event
+                let indelLength = Math.min(
+                    zipfRandom(zipfParam),
+                    maxIndel,
+                    maxLength - sequence.length
+                );
+                
+                // Random position for insertion
+                const insertPos = Math.floor(Math.random() * (sequence.length + 1));
+                
+                // Generate new nucleotides to insert
+                const newNucleotides = [];
+                for (let i = 0; i < indelLength; i++) {
+                    newNucleotides.push(nucleotides[Math.floor(Math.random() * nucleotides.length)]);
+                }
+                
+                // Perform insertion
+                sequence.splice(insertPos, 0, ...newNucleotides);
+                
+                // Create a list of indices for the newly inserted nucleotides
+                const newIndices = [];
+                for (let i = 0; i < indelLength; i++) {
+                    newIndices.push(insertPos + i);
+                }
+                
+                logEvent(`Insertion of ${indelLength} bases [${newNucleotides.join('')}] at position ${insertPos}`);
+                updateSequenceDisplay(newIndices);
+            }
+            
+            updateTotalRate();
+            return sequence.length > 0 && sequence.length < maxLength;
+        }
+        
+        // Run continuous simulation
+        function runSimulation() {
+            running = true;
+            runButton.disabled = true;
+            pauseButton.disabled = false;
+            
+            intervalId = setInterval(() => {
+                step();
+            }, 2000 - speedSlider.value);
+        }
+        
+        // Pause simulation
+        function pauseSimulation() {
+            running = false;
+            clearInterval(intervalId);
+            runButton.disabled = false;
+            pauseButton.disabled = true;
+        }
+        
+        // Event listeners
+        initButton.addEventListener('click', initializeSequence);
+        stepButton.addEventListener('click', step);
+        runButton.addEventListener('click', runSimulation);
+        pauseButton.addEventListener('click', pauseSimulation);
+        speedSlider.addEventListener('input', () => {
+            if (running) {
+                clearInterval(intervalId);
+                intervalId = setInterval(step, 2000 - speedSlider.value);
+            }
+        });
+        
+        // Initialize on page load
+        window.onload = initializeSequence;
+    </script>
+</body>
+</html>
